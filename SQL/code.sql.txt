@@ -1,0 +1,105 @@
+--GET COUNT OF CAMPAIGNS
+select count(distinct utm_campaign) as 'Number of campaigns' 
+from page_visits;
+
+--GET COUNT OF SOURCES
+select count(distinct utm_source) as 'Number of sources'
+from page_visits;
+
+--GET CAMPAIGN AND SOURCE RELATIONSHIP
+select distinct utm_campaign as Campaigns, utm_source as Sources
+from page_visits
+order by 1;
+
+
+--GET PAGE NAMES ON WEBSITE
+select distinct page_name AS 'Page Names'
+from page_visits;
+
+
+--Campaigns vs First Touches 
+with first_touch as (
+    select user_id,
+        min(timestamp) as first_touch_at
+    from page_visits
+    group by user_id),
+  ft_attr as (
+  select ft.user_id,
+         ft.first_touch_at,
+         pv.utm_source,
+         pv.utm_campaign
+ from first_touch ft
+  join page_visits pv
+    on ft.user_id = pv.user_id
+    and ft.first_touch_at = pv.timestamp)
+select ft_attr.utm_source as Source,
+       ft_attr.utm_campaign as Campaign,
+       count(*) as 'Number of first touches'
+from ft_attr
+group by 1, 2
+order by 3 desc;
+
+
+-- Get Campaigns vs. Last Touches 
+WITH last_touch AS (
+  SELECT user_id,
+        max(timestamp) as last_touch_at
+    FROM page_visits
+    GROUP BY user_id),
+lt_attr AS (
+  SELECT lt.user_id,
+         lt.last_touch_at,
+         pv.utm_source,
+         pv.utm_campaign,
+         pv.page_name
+  FROM last_touch lt
+  JOIN page_visits pv
+    ON lt.user_id = pv.user_id
+    AND lt.last_touch_at = pv.timestamp)
+SELECT lt_attr.utm_source AS Source,
+       lt_attr.utm_campaign AS Campaign,
+       COUNT(*) AS 'Number of last touches'
+FROM lt_attr
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+
+
+--Get Number of Purchase
+select count(distinct user_id)
+from page_visits
+where page_name = '4 - purchase';
+
+
+--Get number of last touches led to a purchase
+WITH last_touch AS (
+  SELECT user_id,
+        max(timestamp) as last_touch_at
+    FROM page_visits
+  WHERE page_name = '4 - purchase'
+    GROUP BY user_id),
+lt_attr AS (
+  SELECT lt.user_id,
+         lt.last_touch_at,
+         pv.utm_source,
+         pv.utm_campaign,
+         pv.page_name
+  FROM last_touch lt
+  JOIN page_visits pv
+    ON lt.user_id = pv.user_id
+    AND lt.last_touch_at = pv.timestamp)
+SELECT lt_attr.utm_source AS Source,
+       lt_attr.utm_campaign AS Campaign,
+       COUNT(*) AS 'Number of purchase'
+FROM lt_attr
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+
+
+--Get an User Journey Example
+select page_name as 'Page Name', 
+timestamp as Timestamp, 
+user_id as 'User ID', 
+utm_campaign as 'Campaign', 
+utm_source as 'Source'
+from page_visits
+where user_id = 10030;
